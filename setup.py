@@ -9,5 +9,5 @@ setup(
     author_email='zack.hodari@ed.ac.uk',
     # license='MIT',
     packages=['tts_metric_tools'],
-    entry_points={'console_scripts': ['tmt_process = tts_data_tools.process:main',
-                                      'tmt_metrics = tts_data_tools.metrics:main']})
+    entry_points={'console_scripts': ['tmt_process = tts_metric_tools.process:main',
+                                      'tmt_metrics = tts_metric_tools.metrics:main']})

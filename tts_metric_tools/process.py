@@ -1,10 +1,14 @@
 """Runs the feature extraction on the waveforms and binarises the label files.
 Usage:
     python process.py \
-        [--lab_dir DIR] [--state_level] \
-        [--wav_dir DIR] \
+        --metric ENUM \
+        --ref_dir DIR \
+        --gen_dir DIR \
+        --feat_ext STR \
         [--id_list FILE] \
-        --out_dir DIR
+        [--out_file FILE] \
+        [--file_id_txt \
+         --feat_dim INT]
 """
 
 import argparse
@@ -18,9 +22,9 @@ from . import metrics
 
 
 def add_arguments(parser):
-    parser.add_argument("--ref_dir", action="store", dest="lab_dir", type=str, default=None,
+    parser.add_argument("--ref_dir", action="store", dest="ref_dir", type=str, default=None,
                         help="Directory of the ground truth files.")
-    parser.add_argument("--gen_dir", action="store", dest="wav_dir", type=str, default=None,
+    parser.add_argument("--gen_dir", action="store", dest="gen_dir", type=str, default=None,
                         help="Directory of the generated files.")
     parser.add_argument("--id_list", action="store", dest="id_list", type=str, default=None,
                         help="List of file ids to compute the metric for (must be contained in ref_dir and gen_dir).")
@@ -33,14 +37,14 @@ def add_arguments(parser):
     metrics.add_arguments(parser)
 
 
-def compute_metric(metric, ref_dir, gen_dir, id_list, feat_ext, out_file=None, is_npy=True, feat_dim=None):
+def metric_for_directories(metric, ref_dir, gen_dir, feat_ext, id_list=None, out_file=None, is_npy=True, feat_dim=None):
     """Processes label and wave files in id_list, saves the numerical labels and vocoder features to .npy binary files.
     Args:
         metric (str OR metrics.SupportedMetricsEnum): The metric to compute.
         ref_dir (str): Directory containing the ground truth files.
         gen_dir (str): Directory containing the generated files.
-        id_list (str): List of file basenames to process.
         feat_ext (str): Name of the feature being compared, also the file extension of individual files.
+        id_list (str): List of file basenames to process.
         out_file (str): File to save the output to.
         is_npy (bool): If True, uses `file_io.load_bin`, otherwise uses `file_io.load_txt` to load each file.
         """
@@ -59,7 +63,7 @@ def compute_metric(metric, ref_dir, gen_dir, id_list, feat_ext, out_file=None, i
     ref_data = file_io.load_dir(load_fn, ref_dir, file_ids, feat_ext)
     gen_data = file_io.load_dir(load_fn, gen_dir, file_ids, feat_ext)
 
-    metric_value = metrics.compute_metric(ref_data, gen_data, metric)
+    metric_value = metrics.compute(metric, ref_data, gen_data)
 
     print("{metric} for {id_list} is {value}\n"
           "\tref_dir = {ref_dir}\n"
@@ -70,6 +74,8 @@ def compute_metric(metric, ref_dir, gen_dir, id_list, feat_ext, out_file=None, i
         os.makedirs(os.path.dirname(out_file), exist_ok=True)
         file_io.save_txt(metric_value, out_file)
 
+    return metric_value
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -77,8 +83,8 @@ def main():
     add_arguments(parser)
     args = parser.parse_args()
 
-    compute_metric(args.metric, args.ref_dir, args.gen_dir, args.id_list, args.feat_ext,
-                   out_file=args.out_file, is_npy=not args.file_is_txt, feat_dim=args.feat_dim)
+    metric_for_directories(args.metric, args.ref_dir, args.gen_dir, args.feat_ext, id_list=args.id_list,
+                           out_file=args.out_file, is_npy=not args.file_is_txt, feat_dim=args.feat_dim)
 
 
 if __name__ == "__main__":
